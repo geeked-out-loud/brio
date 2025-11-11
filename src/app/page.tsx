@@ -27,9 +27,9 @@ export default function Home() {
       </div>
 
       {/* Main Content - Side by Side */}
-      <div className="flex-1 w-full flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 overflow-hidden">
+      <div className="flex-1 w-full flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 overflow-hidden px-8 md:px-16">
         {/* Left Side - Braille Display */}
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 px-6 md:px-10">
           <BrailleDisplay 
             currentDots={currentDots}
             pressedKeys={pressedKeys}
