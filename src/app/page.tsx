@@ -13,17 +13,16 @@ export default function Home() {
     <div className="h-screen w-screen bg-[#0F0F0F] flex flex-col justify-between overflow-hidden p-4">
       {/* Header */}
       <div className="text-center flex-shrink-0">
-        <div className="flex items-center justify-center gap-3 mb-2">
+        <div className="flex items-center justify-center gap-4">
           <Image 
             src="/logo.png" 
             alt="Brio Logo" 
-            width={48} 
-            height={48}
+            width={100} 
+            height={100}
             className="opacity-90"
           />
-          <h1 className="text-3xl font-bold text-[#E8E8E8] tracking-tight">brio</h1>
+          <h1 className="text-4xl font-bold text-[#E8E8E8] tracking-tight">brio</h1>
         </div>
-        <p className="text-[#3A3A3A] text-xs tracking-wider uppercase">braille input optimizer</p>
       </div>
 
       {/* Main Content - Side by Side */}
