@@ -2,39 +2,51 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { keyToDot, keysToDots, dotsToCharacter } from '@/utils/brailleMapping';
-import { keyToNote, playNote, triggerHaptic } from '@/utils/piano';
+import { keyToNote, playPianoNote, playMechanicalClick, playMechanicalRelease, triggerHaptic, unlockAudio, type AudioMode } from '@/utils/audioFeedback';
 import { SPECIAL_KEYS } from '@/utils/constants';
 import type { UseBrailleInputReturn } from '@/types/braille';
 
-export function useBrailleInput(): UseBrailleInputReturn {
+export function useBrailleInput(audioMode: AudioMode = 'piano'): UseBrailleInputReturn {
   const [input, setInput] = useState('');
   const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
   const [currentDots, setCurrentDots] = useState<number[]>([]);
   const activeChordRef = useRef<Set<string>>(new Set());
   const maxChordRef = useRef<Set<string>>(new Set());
-  const playedNotesRef = useRef<Set<string>>(new Set()); // Track which notes have been played
-  const stopFunctionsRef = useRef<Map<string, () => void>>(new Map()); // Track stop functions for each note
+  const playedNotesRef = useRef<Set<string>>(new Set());
+  const stopFunctionsRef = useRef<Map<string, () => void>>(new Map());
+  const audioUnlockedRef = useRef(false);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
       
       if (key in keyToDot && !e.repeat) {
         e.preventDefault();
         
-        // Play piano note if not already played
-        if (!playedNotesRef.current.has(key) && keyToNote[key]) {
-          const stopFn = playNote(keyToNote[key].frequency, 2500, true); // Hold mode with 2.5s resonance
-          stopFunctionsRef.current.set(key, stopFn);
-          // Trigger haptic feedback based on which dot (1-6)
-          triggerHaptic(keyToDot[key]);
-          playedNotesRef.current.add(key);
+        // Unlock audio on first interaction (mobile requirement)
+        if (!audioUnlockedRef.current) {
+          await unlockAudio();
+          audioUnlockedRef.current = true;
         }
         
-        // Add to active chord
+        if (audioMode === 'piano') {
+          if (!playedNotesRef.current.has(key) && keyToNote[key]) {
+            const stopFn = playPianoNote(keyToNote[key].frequency, 2500, true);
+            stopFunctionsRef.current.set(key, stopFn);
+            triggerHaptic(keyToDot[key]);
+            playedNotesRef.current.add(key);
+          }
+        } else {
+          if (!playedNotesRef.current.has(key)) {
+            const stopFn = playMechanicalClick(key);
+            stopFunctionsRef.current.set(key, stopFn);
+            triggerHaptic(keyToDot[key]);
+            playedNotesRef.current.add(key);
+          }
+        }
+        
         activeChordRef.current.add(key);
         
-        // Update max chord (track the largest chord during this press)
         if (activeChordRef.current.size > maxChordRef.current.size) {
           maxChordRef.current = new Set(activeChordRef.current);
         }
@@ -49,29 +61,28 @@ export function useBrailleInput(): UseBrailleInputReturn {
       if (key in keyToDot) {
         e.preventDefault();
         
-        // Stop the note when key is released
-        const stopFn = stopFunctionsRef.current.get(key);
-        if (stopFn) {
-          stopFn();
-          stopFunctionsRef.current.delete(key);
+        if (audioMode === 'piano') {
+          const stopFn = stopFunctionsRef.current.get(key);
+          if (stopFn) {
+            stopFn();
+            stopFunctionsRef.current.delete(key);
+          }
+        } else {
+          playMechanicalRelease(key);
         }
         
-        // Remove from active chord
         activeChordRef.current.delete(key);
-        playedNotesRef.current.delete(key); // Reset played state
+        playedNotesRef.current.delete(key);
         setPressedKeys(new Set(activeChordRef.current));
         
-        // If ALL keys are now released, process the max chord
         if (activeChordRef.current.size === 0 && maxChordRef.current.size > 0) {
           const chordToProcess = new Set(maxChordRef.current);
           
-          // Convert to Braille
           const dots = keysToDots(chordToProcess);
           const char = dotsToCharacter(dots);
           
           setInput(prev => prev + char);
           
-          // Reset max chord for next character
           maxChordRef.current = new Set();
         }
         
@@ -91,7 +102,7 @@ export function useBrailleInput(): UseBrailleInputReturn {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, []);
+  }, [audioMode]);
 
   useEffect(() => {
     const dots = keysToDots(pressedKeys);

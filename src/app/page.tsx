@@ -1,16 +1,50 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import BrailleDisplay from '@/components/BrailleDisplay';
 import TextInput from '@/components/TextInput';
 import { useBrailleInput } from '@/hooks/useBrailleInput';
 import { dotsToChar } from '@/utils/brailleMapping';
+import type { AudioMode } from '@/utils/audioFeedback';
 
 export default function Home() {
-  const { input, pressedKeys, currentDots } = useBrailleInput();
+  const [audioMode, setAudioMode] = useState<AudioMode>('piano');
+  const { input, pressedKeys, currentDots } = useBrailleInput(audioMode);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Auto-focus on mount for mobile keyboard accessibility
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
+
+  const handleInputFocus = () => {
+    // Keep input focused for keyboard access
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  };
 
   return (
-    <div className="h-screen w-screen bg-[#0F0F0F] flex flex-col justify-between overflow-hidden p-4">
+    <div 
+      className="h-screen w-screen bg-[#0F0F0F] flex flex-col justify-between overflow-hidden p-4"
+      onClick={handleInputFocus}
+    >
+      {/* Hidden accessible input for mobile keyboard trigger */}
+      <input
+        ref={inputRef}
+        type="text"
+        inputMode="none"
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        aria-label="Braille input field"
+        className="absolute opacity-0 pointer-events-none"
+        style={{ left: '-9999px' }}
+      />
       {/* Header */}
       <div className="text-center flex-shrink-0">
         <div className="flex items-center justify-center gap-4">
@@ -22,6 +56,31 @@ export default function Home() {
             className="opacity-90"
           />
           <h1 className="text-4xl font-bold text-[#E8E8E8] tracking-tight">brio</h1>
+        </div>
+        
+        {/* Mode Toggle */}
+        <div className="flex items-center justify-center gap-3 mt-4">
+          <button
+            onClick={() => setAudioMode('piano')}
+            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+              audioMode === 'piano'
+                ? 'bg-[#2A2A2A] text-[#E8F4FF] shadow-lg'
+                : 'bg-transparent text-[#3A3A3A] hover:text-[#6A6A6A]'
+            }`}
+          >
+            🎹 Learning
+          </button>
+          <div className="w-px h-6 bg-[#2A2A2A]" />
+          <button
+            onClick={() => setAudioMode('mechanical')}
+            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+              audioMode === 'mechanical'
+                ? 'bg-[#2A2A2A] text-[#E8F4FF] shadow-lg'
+                : 'bg-transparent text-[#3A3A3A] hover:text-[#6A6A6A]'
+            }`}
+          >
+            ⌨️ Writing
+          </button>
         </div>
       </div>
 
